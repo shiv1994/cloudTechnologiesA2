@@ -1,0 +1,23 @@
+{
+  "name": "cloud_technologies_a2",
+  "version": "1.0.0",
+  "description": "Cloud Patterns.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shiv1994/cloudTechnologiesA2.git"
+  },
+  "author": "Shiva Ramoudith",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shiv1994/cloudTechnologiesA2/issues"
+  },
+  "homepage": "https://github.com/shiv1994/cloudTechnologiesA2#readme",
+  "dependencies": {
+    "express": "^4.16.2",
+    "nodemon": "^1.12.1"
+  }
+}
