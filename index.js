@@ -1,6 +1,34 @@
+"use strict";
+
+// class System{
+    // 
+// }
+
+// class Seller {
+//     constructor(name) {
+//       this.name = name;
+//     }
+//     get sellerName(){
+//       return this.name;
+//     }
+// }
+
+// class Theatre {
+//     constructor(transType, ) {
+//       this.name = name;
+//     }
+//     get sellerName(){
+//       return this.name;
+//     }
+// }
+
+// Creation of Global Variables.
+
 var express = require('express')
 
 var bodyParser = require('body-parser')
+
+var expressValidator = require('express-validator');
 
 var router = express.Router();
 
@@ -12,29 +40,45 @@ var events = [];
 
 var eventId = 0;
 
+// Adding features to the main application vatiable.
+
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(bodyParser.json()); 
 
-router.get('/',function(req, res){
-    res.sendFile(path + 'index.html');
-});
+app.use(expressValidator());
 
-//Types of Events: Add Movie Sale, Remove Movie Sale, Possibly Add Movie Ticket Sellers.
+// var system = new System();
 
-router.post('/saveEvent', function (req, res){
-    var person = req.body.PersonSelect;
-    var theatre = req.body.TheatreSelct;
-    var numTickets = req.body.NumTicksSelect;
-    var transType = req.body.TransType;
-    var event = {'person':person, 'theatre':theatre, 'numTickets':numTickets, 'transType':transType};
-    events.push(event);
-    eventId++;
-    res.sendFile(path + 'index.html');
-    console.log(events);
-});
+// Routing functionality of application.
 
-app.use('/', router);
+    // This route is used to display the homepage where all functionality can be carried out.
+    router.get('/',function(req, res){
+        res.sendFile(path + 'index.html');
+    });
+
+    // This route handles POST requests sent to the server containing the addition of events.
+    router.post('/saveEvent', function (req, res){
+        // Ensuring input exists.
+        req.checkBody('PersonSelect', 'Invalid name').notEmpty().isAlpha();
+        req.checkBody('TheatreSelct', 'Invalid name').notEmpty().isAlpha();
+        req.checkBody('NumTicksSelect', 'Invalid name').notEmpty().isInt();
+        req.checkBody('TransType', 'Invalid name').notEmpty().isAlpha();
+        // Sanitizing parameters in the body.
+        req.sanitizeBody('PersonSelect').escape();
+        req.sanitizeBody('TheatreSelct').escape();
+        req.sanitizeBody('NumTicksSelect').escape();
+        req.sanitizeBody('TransType').escape();
+        // Building the event and storing it in an array for the time being.
+        var event = {'timestamp':Date.now(), 'transType':req.body.TransType, 'person':req.body.PersonSelect, 'theatre':req.body.TheatreSelct, 'numTickets':req.body.NumTicksSelect};
+        events.push(event);
+        // system.processEvent();
+        eventId++;
+        res.redirect('/');
+        console.log(events);
+    });
+
+    app.use('/', router);
 
 app.listen(8000, function () {
     console.log('Example app listening on port 8000!');
@@ -48,4 +92,4 @@ function processEvents(){
     }, this);
 }
 
-setInterval(processEvents, 10000);
+// setInterval(processEvents, 10000);
