@@ -75,7 +75,18 @@ app.use(expressValidator());
         // system.processEvent();
         eventId++;
         res.redirect('/');
-        console.log(events);
+    });
+
+    // This route handles POST requests sent to the server containing the addition of events.
+    router.post('/addTicketSeller', function (req, res){
+        
+    });
+
+    router.post('/addTheatre', function (req, res){
+        console.log("HELLOOO");
+        req.checkBody('theatreShowing', 'Invalid name').notEmpty().isAlpha();
+        req.sanitizeBody('theatreShowing').escape();
+        console.log(req.body.theatreShowing);
     });
 
     app.use('/', router);

@@ -8,9 +8,8 @@
 
     <!-- styles -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-
     <!-- scripts -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
   </head>
@@ -21,13 +20,84 @@
         <div class="jumbotron">
             <h1> Movie Theater Bookings</h1>
             <p>Below you can activate certain events based on the users and theatres presented. Select a user and then associate them with a particualr theatre.</p>
-        </div>    
+        </div>
+        
+        <form>
+            
+            <div class="row">
+
+                    <div class="col-sm-4">
+
+                        <div class="form-group">
+                            <label for="usr">Theater Showing:</label>
+                            <input type="text" class="form-control" id="theaterShowing">
+                        </div>
+                    
+                        </div>
+
+                    <div class="col-sm-4">
+
+                            <div class="form-group">
+                                <label for="usr"> </label>
+                            </div>
+
+                            <input id="btnAddTicketSeller" type="button" value="Click Me!">
+                    
+                    </div>
+
+                    <div class="col-sm-4">
+                            
+                            <p>Status: </p> 
+                            <p>Message Goes Here.</p>
+
+                    </div>
+
+            </div>
+
+        </form>
+
+        <form method="post" action="http://127.0.0.1:8000/addTicketSeller">
+            
+            <div class="row">
+                    
+                <div class="col-sm-4">
+
+                    <div class="form-group">
+                        <label for="usr">Ticket Salesperson:</label>
+                        <input type="text" class="form-control" name="salesPersonName">
+                    </div>
+                
+                    </div>
+
+                <div class="col-sm-4">
+
+                        <div class="form-group">
+                            <label for="usr"> </label>
+                        </div>
+
+                        <!-- <button id="btnAddTicketSeller">Send Data</button> -->
+                
+                </div>
+
+                <div class="col-sm-4">
+                        
+                        <p>Status: </p> 
+                        <p>Message Goes Here.</p>
+
+                </div>
+
+        </div>
+
+        </form>
+
+        <hr>
 
         <form method="post" action="http://127.0.0.1:8000/saveEvent">
 
             <div class="row">
 
                 <div class="col-sm-4">
+
                     <div class="dropdown">
 
                         Ticket SalesPerson    
@@ -71,6 +141,15 @@
                 </div>
 
                 <div class="col-sm-4">
+                        
+                        <p>Status: </p> 
+                        <p>Message Goes Here.</p>
+
+                </div>
+
+
+
+                <!-- <div class="col-sm-4">
 
                     <h6> <b> Last Updated 10 seconds ago. </b> </h6>
 
@@ -104,7 +183,7 @@
                         <h6> Number of Tickets Mary Bought: 6</h6>
                     </div>
 
-                </div>
+                </div> -->
 
             </div> 
 
@@ -112,5 +191,26 @@
 
     </div>
 
+
+    <script> 
+        $(document).ready(function(){
+
+            $('#btnAddTicketSeller').click(function(){
+
+                $.post(
+                    "http://127.0.0.1:8000/addTheatre", 
+                    {name:'shiva'}, 
+                    function(result){
+                        console.log(result);
+                    },
+                    'json'
+                );
+                
+            });
+            
+            
+
+        });   
+    </script>
   </body>
 </html>
