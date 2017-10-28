@@ -29,8 +29,8 @@
                     <div class="col-sm-4">
 
                         <div class="form-group">
-                            <label for="usr">Theater Showing:</label>
-                            <input type="text" class="form-control" id="theaterShowing">
+                            <label for="usr">Ticket SalesPerson: </label>
+                            <input type="text" class="form-control" id="ticketSeller">
                         </div>
                     
                         </div>
@@ -41,7 +41,7 @@
                                 <label for="usr"> </label>
                             </div>
 
-                            <input id="btnAddTicketSeller" type="button" value="Click Me!">
+                            <input id="btnAddTicketSeller" type="button" value="Add Ticket Seller!">
                     
                     </div>
 
@@ -56,15 +56,15 @@
 
         </form>
 
-        <form method="post" action="http://127.0.0.1:8000/addTicketSeller">
+        <form method="post">
             
             <div class="row">
                     
                 <div class="col-sm-4">
 
                     <div class="form-group">
-                        <label for="usr">Ticket Salesperson:</label>
-                        <input type="text" class="form-control" name="salesPersonName">
+                        <label for="usr"> Add Movie Showing</label>
+                        <input type="text" class="form-control" name="movieShowing">
                     </div>
                 
                     </div>
@@ -75,7 +75,7 @@
                             <label for="usr"> </label>
                         </div>
 
-                        <!-- <button id="btnAddTicketSeller">Send Data</button> -->
+                        <input id="btnAddMovieShowing" type="button" value="Add Movie">
                 
                 </div>
 
@@ -101,11 +101,7 @@
                     <div class="dropdown">
 
                         Ticket SalesPerson    
-                        <select name="PersonSelect">
-                            <option value="fred">Fred</option>
-                            <option value="bob">Bob</option>
-                            <option value="mary">Mary</option>
-                        </select> 
+                        <select id="ticketSellers"> </select> 
 
                         <hr>
 
@@ -198,8 +194,27 @@
             $('#btnAddTicketSeller').click(function(){
 
                 $.post(
-                    "http://127.0.0.1:8000/addTheatre", 
-                    {name:'shiva'}, 
+                    "http://127.0.0.1:8000/addTicketSeller", 
+                    {ticketSeller:$("#ticketSeller").val()}, 
+                    function(result){
+                        console.log(result);
+                        var sellers = '';
+                        for (var i=0;i<result.length;i++){
+                            sellers += '<option value="'+ result[i] + '">' + result[i] + '</option>';
+                        }
+                        console.log(sellers);
+                        $('#ticketSellers').append(sellers);
+                    },
+                    'json'
+                );
+                
+            });
+
+            $('#btnAddMovieShowing').click(function(){
+
+                $.post(
+                    "http://127.0.0.1:8000/addMovieShowing", 
+                    {ticketSeller:$("#movieShowing").val()}, 
                     function(result){
                         console.log(result);
                     },

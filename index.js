@@ -1,28 +1,39 @@
 "use strict";
 
-// class System{
-    // 
-// }
+class System{
+    constructor(){
+        this.ticketSeller = new Array();
+        this.theatreShowing = new Array();
+        this.events = new Array();
+    }
 
-// class Seller {
-//     constructor(name) {
-//       this.name = name;
-//     }
-//     get sellerName(){
-//       return this.name;
-//     }
-// }
+    allSellers(){
+        return this.ticketSeller;
+    }
+}
 
-// class Theatre {
-//     constructor(transType, ) {
-//       this.name = name;
-//     }
-//     get sellerName(){
-//       return this.name;
-//     }
-// }
+function determineAndAddEvent(eventType, data){
+    //Add to Event Store
+    //addEvent(eventType, timeStamp, data);
+    
+    //Add event to update real time view of system.
+    if(eventType=="addSalesPerson"){
+        system.ticketSeller.push(data);
+    }
+    if(eventType=="addMovieTheatre"){
+        theatreShowing.push(data.theatreShowing);
+    }
+    if(eventType=="addTicketSale"){
+        //Find theatre and add num tickets in request.
+    }
+    if(eventType=="removeTicketSale"){
+        //Find theatre and add num tickets in request.
+    }
+}
 
 // Creation of Global Variables.
+
+var cors = require('cors')
 
 var express = require('express')
 
@@ -48,7 +59,9 @@ app.use(bodyParser.json());
 
 app.use(expressValidator());
 
-// var system = new System();
+app.use(cors());
+
+var system = new System();
 
 // Routing functionality of application.
 
@@ -79,14 +92,21 @@ app.use(expressValidator());
 
     // This route handles POST requests sent to the server containing the addition of events.
     router.post('/addTicketSeller', function (req, res){
-        
+        req.checkBody('ticketSeller', 'Invalid name').notEmpty().isAlpha();
+        req.sanitizeBody('ticketSeller').escape();
+        var newTicketSeller = req.body.ticketSeller;
+        //Adding Seller to System.
+        determineAndAddEvent("addSalesPerson", newTicketSeller); 
+        //Return request of all ticketSellers to populate view.
+        // res.status(200);
+        res.send(JSON.stringify(system.allSellers()));
     });
 
-    router.post('/addTheatre', function (req, res){
-        console.log("HELLOOO");
-        req.checkBody('theatreShowing', 'Invalid name').notEmpty().isAlpha();
-        req.sanitizeBody('theatreShowing').escape();
-        console.log(req.body.theatreShowing);
+    router.post('/addMovieShowing', function (req, res){
+        req.checkBody('movieShowing', 'Invalid name').notEmpty().isAlpha();
+        req.sanitizeBody('movieShowing').escape();
+        var newMovie = req.body.movieShowing;
+        //Adding Movie to System
     });
 
     app.use('/', router);
