@@ -5,13 +5,29 @@ class System{
         this.ticketSeller = new Array();
         this.theatreShowing = new Array();
         this.events = new Array();
-        this.eventId = 0;
+        this.sellerNames = new Array();
+        this.movieNames = new Array();
+        this.eventID = 0;
+    }
+
+    clearArrays(){
+        this.ticketSeller = new Array();
+        this.theatreShowing = new Array();
+        this.events = new Array();
         this.sellerNames = new Array();
         this.movieNames = new Array();
     }
 
+    getSellersData(){
+        return this.ticketSeller;
+    }
+
+    getTheatreData(){
+        return this.theatreShowing;
+    }
+
     printSystem(){
-        console.log(this.ticketSeller, this.theatreShowing);
+        console.log(this.events);
     }
 
     allSellers(){
@@ -60,30 +76,39 @@ class System{
         return removed;
     }
 
-}
+    addEvent(eventType, data){
+        
+        //Add event to update real time view of system as well as event store once successful.
+        if(eventType=="addSalesPerson"){
+            system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
+            system.sellerNames.push(data);
+            system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+        }
+        if(eventType=="addMovieTheatre"){
+            system.theatreShowing.push({movieName:data, numTicks:Number("0")});
+            system.movieNames.push(data);
+            system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+        }
+        if(eventType=="addTicketSale"){
+            var added = system.ticketSellerAddTickets(data.salesPerson, Number(data.tickets), data.movie);
+            if(added){
+                system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+            }
+        }
+        if(eventType=="removeTicketSale"){
+            var removed = system.ticketSellerRemoveTickets(data.salesPerson, Number(data.tickets), data.movie);
+            if(removed){
+                system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+            }
+        }
+        system.printSystem();
+    }
 
-function AddEvent(eventType, data){
-    //Add to Event Store
-    
-    //Add event to update real time view of system.
-    if(eventType=="addSalesPerson"){
-        system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
-        system.sellerNames.push(data);
-    }
-    if(eventType=="addMovieTheatre"){
-        system.theatreShowing.push({movieName:data, numTicks:Number("0")});
-        system.movieNames.push(data);
-    }
-    if(eventType=="addTicketSale"){
-        console.log("Adding Sale!");
-        var added = system.ticketSellerAddTickets(data.salesPerson, Number(data.tickets), data.movie);
-        console.log(added);
-        system.printSystem();
-    }
-    if(eventType=="removeTicketSale"){
-        var removed = system.ticketSellerRemoveTickets(data.salesPerson, Number(data.tickets), data.movie);
-        console.log(data);
-        system.printSystem();
+    processEvents(){
+        this.events.forEach(function(event){
+            addEvent(event.eventType, eventType.data);
+        });
+        printSystem();
     }
 }
 
@@ -115,7 +140,19 @@ app.use(cors());
 
 var system = new System();
 
-// Routing functionality of application.
+    // Routing functionality of application.
+
+    router.get('/refreshSystemMemory', function(req,res){
+        system.processEvents();
+    });
+
+    router.get('/wipeSystemMemory', function(req,res){
+        system.clearArrays();
+    });
+
+    router.get('/systemStatus', function(req,res){
+        res.json({theatreShowings: system.getTheatreData(), sellers:system.getSellersData()});
+    });
 
     // This route is used to display the homepage where all functionality can be carried out.
     router.get('/',function(req, res){
@@ -138,10 +175,10 @@ var system = new System();
         var data = {movie:req.body.movie, salesPerson:req.body.salesPerson, tickets:req.body.tickets}; 
         var eventType = req.body.transType;
         if(eventType=="buy"){
-            AddEvent("addTicketSale",data);
+            system.addEvent("addTicketSale",data);
         }
         else{
-            AddEvent("removeTicketSale",data);
+            system.addEvent("removeTicketSale",data);
         }
         res.redirect('/');
     });
@@ -152,7 +189,7 @@ var system = new System();
         req.sanitizeBody('ticketSeller').escape();
         var newTicketSeller = req.body.ticketSeller;
         //Adding Seller to System.
-        AddEvent("addSalesPerson", newTicketSeller); 
+        system.addEvent("addSalesPerson", newTicketSeller); 
         //Return request of all ticketSellers to populate view.
         res.status(200);
         res.json({message:"Sales Person Added Successfully.", allSellers:JSON.stringify(system.allSellers())});
@@ -163,24 +200,14 @@ var system = new System();
         req.sanitizeBody('movieShowing').escape();
         var newMovie = req.body.movieShowing;
         //Adding Movie to System.
-        AddEvent("addMovieTheatre", newMovie);
+        system.addEvent("addMovieTheatre", newMovie);
         //Return request of all movieTheatres to populate view.
         res.status(200);
         res.json({message:"Movie Theatre Added Successfully.", allTheatres:JSON.stringify(system.allTheatreShowings())});
     });
 
-    app.use('/', router);
+app.use('/', router);
 
 app.listen(8000, function () {
-    console.log('Example app listening on port 8000!');
+    console.log('App Listening on Port: 8000');
 });
-
-// function processEvents(){
-//     events.forEach(function(element) {
-//         //Firstly need to check from the last snapshot point, if any exists.
-//         //If it does exist, we can start from that particular snapshot.
-//         //We may model the snapshot like this: snapshot={snapshotId, theater:{t1:500, t2:1000}, personsSelling:{Names of Persons}}
-//     }, this);
-// }
-
-// setInterval(processEvents, 10000);

@@ -21,6 +21,31 @@
             <p>Below you can activate certain events based on the users and theatres presented. Select a user and then associate them with a particualr theatre.</p>
         </div>
 
+        <h3>System Status</h3>
+
+        <hr>
+
+        <div class="row">
+
+             <div class="col-sm-3">
+                    <button id="btnResetServerData" type="button" class="btn btn-danger">Clear Server Memory</button>
+             </div>
+
+             <div class="col-sm-3">
+                    <button id="btnReloadServerData" type="button" class="btn btn-success">Reload Server Data</button>
+             </div>
+
+             <div class="col-sm-6 card">
+                <div class="card-body" style="height:120px;width:550px;overflow:auto;">
+                        <p id="systemReport"></p>
+                </div>
+            </div>
+
+
+        </div>
+
+        <hr>
+
         <h3> Adding Entities To System</h3>
 
         <hr>
@@ -48,7 +73,7 @@
                     
                     </div>
 
-                    <div class="col-sm-4">
+                    <div class="col-sm-4 ">
                             
                         <p>Status: </p> 
                         <p id="salesPersonResponse"></p>
@@ -90,6 +115,8 @@
                 </div>
 
         </div>
+
+        <hr>
 
         </form>
 
@@ -149,11 +176,45 @@
 
         </form>
 
+        <hr>
+
     </div>
 
 
     <script> 
         $(document).ready(function(){
+
+            systemStatus();
+
+            function systemStatus(){
+                $.get(
+                    "http://127.0.0.1:8000/systemStatus",
+                    function(result){
+                        var theatres = (result.theatreShowings);
+                        var sellers = (result.sellers);
+                        var text = "Theatres<br>";
+                        theatres.forEach(function(element) {
+                            text += element.movieName + " " + element.numTicks +'<br>';
+                        });
+                        text += "--------------------------";
+                        text += "<br>Sellers<br>"
+                        sellers.forEach(function(element) {
+                            text += element.sellerName + " " + element.numTicks +'<br>';
+                        });
+                        console.log(text);
+                        $('#systemReport').html(text);
+                    },
+                    'json'
+                );
+            }
+
+            $('#btnResetServerData').click(function(){
+                console.log('Reset Called!');
+            });
+
+            $('#btnReloadServerData').click(function(){
+                console.log('Reload Called!');
+            });
 
             $('#btnAddTicketSeller').click(function(){
                 $.post(
@@ -177,7 +238,6 @@
                     "http://127.0.0.1:8000/addMovieShowing", 
                     { movieShowing:$("#movieShowing").val() }, 
                     function(result){
-                        console.log(result);
                         $('#movieTheatreResponse').text(result.message);
                         var names = JSON.parse(result.allTheatres);
                         var theatres = '';
@@ -196,11 +256,9 @@
                     { movie:$("#movieShowing").val(), tickets:$("#numTickets").val(), salesPerson:$("#ticketSellers").val(),  transType:$("#transType").val()},
                     function(result){
                         console.log(result.message);
-
                     }
                 );
-            })
-
+            });
 
         });   
     </script>
