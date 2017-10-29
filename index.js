@@ -5,29 +5,85 @@ class System{
         this.ticketSeller = new Array();
         this.theatreShowing = new Array();
         this.events = new Array();
+        this.eventId = 0;
+        this.sellerNames = new Array();
+        this.movieNames = new Array();
+    }
+
+    printSystem(){
+        console.log(this.ticketSeller, this.theatreShowing);
     }
 
     allSellers(){
-        return this.ticketSeller;
+        return this.sellerNames;
     }
+
+    allTheatreShowings(){
+        return this.movieNames;
+    }
+
+    ticketSellerAddTickets(sellerName, tickets, movieName){
+        var added = false;
+        this.theatreShowing.forEach(function(el){
+            if(el.movieName==movieName){
+                if(el.numTicks<200){
+                    el.numTicks += tickets;
+                    added = true;
+                }
+            }
+        });
+        if(added){
+            this.ticketSeller.forEach(function(el){
+                if(el.sellerName == sellerName)
+                    el.numTicks += tickets;
+            });
+        }
+        return added;
+    }
+
+    ticketSellerRemoveTickets(sellerName, tickets, movieName){
+        var removed = false;
+        this.theatreShowing.forEach(function(el){
+            if(el.movieName==movieName){
+                if(el.numTicks>0+tickets){
+                    el.numTicks -= tickets;
+                    removed = true;
+                }
+            }
+        });
+        if(removed){
+            this.ticketSeller.forEach(function(el){
+                if(el.sellerName == sellerName)
+                    el.numTicks -= tickets;
+            });
+        }
+        return removed;
+    }
+
 }
 
-function determineAndAddEvent(eventType, data){
+function AddEvent(eventType, data){
     //Add to Event Store
-    //addEvent(eventType, timeStamp, data);
     
     //Add event to update real time view of system.
     if(eventType=="addSalesPerson"){
-        system.ticketSeller.push(data);
+        system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
+        system.sellerNames.push(data);
     }
     if(eventType=="addMovieTheatre"){
-        theatreShowing.push(data.theatreShowing);
+        system.theatreShowing.push({movieName:data, numTicks:Number("0")});
+        system.movieNames.push(data);
     }
     if(eventType=="addTicketSale"){
-        //Find theatre and add num tickets in request.
+        console.log("Adding Sale!");
+        var added = system.ticketSellerAddTickets(data.salesPerson, Number(data.tickets), data.movie);
+        console.log(added);
+        system.printSystem();
     }
     if(eventType=="removeTicketSale"){
-        //Find theatre and add num tickets in request.
+        var removed = system.ticketSellerRemoveTickets(data.salesPerson, Number(data.tickets), data.movie);
+        console.log(data);
+        system.printSystem();
     }
 }
 
@@ -46,10 +102,6 @@ var router = express.Router();
 var app = express();
 
 var path = __dirname + '/views/';
-
-var events = [];
-
-var eventId = 0;
 
 // Adding features to the main application vatiable.
 
@@ -71,22 +123,26 @@ var system = new System();
     });
 
     // This route handles POST requests sent to the server containing the addition of events.
-    router.post('/saveEvent', function (req, res){
+    router.post('/recordTransaction', function (req, res){
         // Ensuring input exists.
-        req.checkBody('PersonSelect', 'Invalid name').notEmpty().isAlpha();
-        req.checkBody('TheatreSelct', 'Invalid name').notEmpty().isAlpha();
-        req.checkBody('NumTicksSelect', 'Invalid name').notEmpty().isInt();
-        req.checkBody('TransType', 'Invalid name').notEmpty().isAlpha();
+        req.checkBody('movie', 'Invalid name').notEmpty().isAlpha();
+        req.checkBody('tickets', 'Invalid name').notEmpty().isAlpha();
+        req.checkBody('salesPerson', 'Invalid name').notEmpty().isInt();
+        req.checkBody('transType', 'Invalid name').notEmpty().isAlpha();
         // Sanitizing parameters in the body.
-        req.sanitizeBody('PersonSelect').escape();
-        req.sanitizeBody('TheatreSelct').escape();
-        req.sanitizeBody('NumTicksSelect').escape();
-        req.sanitizeBody('TransType').escape();
-        // Building the event and storing it in an array for the time being.
-        var event = {'timestamp':Date.now(), 'transType':req.body.TransType, 'person':req.body.PersonSelect, 'theatre':req.body.TheatreSelct, 'numTickets':req.body.NumTicksSelect};
-        events.push(event);
-        // system.processEvent();
-        eventId++;
+        req.sanitizeBody('movie').escape();
+        req.sanitizeBody('tickets').escape();
+        req.sanitizeBody('salesPerson').escape();
+        req.sanitizeBody('transType').escape();
+        // Adding Event To System.
+        var data = {movie:req.body.movie, salesPerson:req.body.salesPerson, tickets:req.body.tickets}; 
+        var eventType = req.body.transType;
+        if(eventType=="buy"){
+            AddEvent("addTicketSale",data);
+        }
+        else{
+            AddEvent("removeTicketSale",data);
+        }
         res.redirect('/');
     });
 
@@ -96,17 +152,21 @@ var system = new System();
         req.sanitizeBody('ticketSeller').escape();
         var newTicketSeller = req.body.ticketSeller;
         //Adding Seller to System.
-        determineAndAddEvent("addSalesPerson", newTicketSeller); 
+        AddEvent("addSalesPerson", newTicketSeller); 
         //Return request of all ticketSellers to populate view.
-        // res.status(200);
-        res.send(JSON.stringify(system.allSellers()));
+        res.status(200);
+        res.json({message:"Sales Person Added Successfully.", allSellers:JSON.stringify(system.allSellers())});
     });
 
     router.post('/addMovieShowing', function (req, res){
         req.checkBody('movieShowing', 'Invalid name').notEmpty().isAlpha();
         req.sanitizeBody('movieShowing').escape();
         var newMovie = req.body.movieShowing;
-        //Adding Movie to System
+        //Adding Movie to System.
+        AddEvent("addMovieTheatre", newMovie);
+        //Return request of all movieTheatres to populate view.
+        res.status(200);
+        res.json({message:"Movie Theatre Added Successfully.", allTheatres:JSON.stringify(system.allTheatreShowings())});
     });
 
     app.use('/', router);
@@ -115,12 +175,12 @@ app.listen(8000, function () {
     console.log('Example app listening on port 8000!');
 });
 
-function processEvents(){
-    events.forEach(function(element) {
-        //Firstly need to check from the last snapshot point, if any exists.
-        //If it does exist, we can start from that particular snapshot.
-        //We may model the snapshot like this: snapshot={snapshotId, theater:{t1:500, t2:1000}, personsSelling:{Names of Persons}}
-    }, this);
-}
+// function processEvents(){
+//     events.forEach(function(element) {
+//         //Firstly need to check from the last snapshot point, if any exists.
+//         //If it does exist, we can start from that particular snapshot.
+//         //We may model the snapshot like this: snapshot={snapshotId, theater:{t1:500, t2:1000}, personsSelling:{Names of Persons}}
+//     }, this);
+// }
 
 // setInterval(processEvents, 10000);
