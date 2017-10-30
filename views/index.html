@@ -129,7 +129,7 @@
 
         <hr>
 
-        <form method="post" action="http://127.0.0.1:8000/saveEvent">
+        <form method="post">
 
             <div class="row">
 
@@ -173,7 +173,7 @@
                 <div class="col-sm-4">
                         
                         <p>Status: </p> 
-                        <p>Message Goes Here.</p>
+                        <p id="transResponse"></p>
 
                 </div>
 
@@ -191,28 +191,30 @@
 
             systemStatus();
 
+            function writeServerStatus(theatres, sellers){
+                var sellerHTML = "";
+                var moviesHTML = "";
+                var text = "Theatres<br>";
+                theatres.forEach(function(element) {
+                    text += element.movieName + " " + element.numTicks +'<br>';
+                    moviesHTML += '<option value="'+ element.movieName + '">' + element.movieName + '</option>';
+                });
+                $('#theatresShowing').append(moviesHTML);
+                text += "--------------------------";
+                text += "<br>Sellers<br>"
+                sellers.forEach(function(element) {
+                    text += element.sellerName + " " + element.numTicks +'<br>';
+                    sellerHTML +=  '<option value="'+ element.sellerName + '">' + element.sellerName + '</option>';
+                });
+                $('#ticketSellers').append(sellerHTML);
+                $('#systemReport').html(text);
+            }
+
             function systemStatus(){
                 $.get(
                     "http://127.0.0.1:8000/systemStatus",
                     function(result){
-                        var theatres = (result.theatreShowings);
-                        var sellers = (result.sellers);
-                        var sellerHTML = "";
-                        var moviesHTML = "";
-                        var text = "Theatres<br>";
-                        theatres.forEach(function(element) {
-                            text += element.movieName + " " + element.numTicks +'<br>';
-                            moviesHTML += '<option value="'+ element.movieName + '">' + element.movieName + '</option>';
-                        });
-                        $('#theatresShowing').append(moviesHTML);
-                        text += "--------------------------";
-                        text += "<br>Sellers<br>"
-                        sellers.forEach(function(element) {
-                            text += element.sellerName + " " + element.numTicks +'<br>';
-                            sellerHTML +=  '<option value="'+ element.sellerName + '">' + element.sellerName + '</option>';
-                        });
-                        $('#ticketSellers').append(sellerHTML);
-                        $('#systemReport').html(text);
+                        writeServerStatus(result.theatreShowings, result.sellers);
                     },
                     'json'
                 );
@@ -226,7 +228,11 @@
             });
 
             $('#btnReloadServerData').click(function(){
-                console.log('Reload Called!');
+                $.get("http://127.0.0.1:8000/refreshSystemMemory",
+                function(result){
+                    $('#serverStatusResponse').text(result.message);
+                    writeServerStatus(result.theatreShowings, result.sellers);
+                },'json');
             });
 
             $('#btnAddTicketSeller').click(function(){
@@ -266,10 +272,11 @@
             $('#btnRecordTransaction').click(function(){
                 $.post(
                     "http://127.0.0.1:8000/recordTransaction",
-                    { movie:$("#movieShowing").val(), tickets:$("#numTickets").val(), salesPerson:$("#ticketSellers").val(),  transType:$("#transType").val()},
+                    { movie:$("#theatresShowing").val(), tickets:$("#numTickets").val(), salesPerson:$("#ticketSellers").val(),  transType:$("#transType").val()},
                     function(result){
-                        console.log(result.message);
-                    }
+                        $('#transResponse').text(result.message);
+                    },
+                    'json'
                 );
             });
 

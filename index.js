@@ -4,7 +4,6 @@ class System{
     constructor(){
         this.ticketSeller = new Array();
         this.theatreShowing = new Array();
-        this.events = new Array();
         this.sellerNames = new Array();
         this.movieNames = new Array();
         this.eventID = 0;
@@ -13,9 +12,9 @@ class System{
     clearArrays(){
         this.ticketSeller = new Array();
         this.theatreShowing = new Array();
-        this.events = new Array();
         this.sellerNames = new Array();
         this.movieNames = new Array();
+        this.eventID = 0;
     }
 
     getSellersData(){
@@ -27,7 +26,7 @@ class System{
     }
 
     printSystem(){
-        console.log(this.events);
+        return this.eventID;
     }
 
     allSellers(){
@@ -76,45 +75,92 @@ class System{
         return removed;
     }
 
-    addEvent(eventType, data){
-
+    addEventSystem(eventType, data, addToAzure){
+        var result = "lolo";
         //Add event to update real time view of system as well as event store once successful.
         if(eventType=="addSalesPerson"){
             system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
             system.sellerNames.push(data);
-            system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
-            addEventAzure(data, eventType);
+            if(addToAzure){
+                system.addEventAzure(data, eventType);
+                system.eventID++;
+            }
+            else{
+                system.eventID++;
+            }
 
         }
         if(eventType=="addMovieTheatre"){
             system.theatreShowing.push({movieName:data, numTicks:Number("0")});
             system.movieNames.push(data);
-            system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
-            addEventAzure(data, eventType);
+            if(addToAzure){
+                system.addEventAzure(data, eventType);
+                system.eventID++;
+            }
+            else{
+                system.eventID++;
+            }
         }
         if(eventType=="addTicketSale"){
             var added = system.ticketSellerAddTickets(data.salesPerson, Number(data.tickets), data.movie);
             if(added){
-                system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
-                addEventAzure(data, eventType);
+                result = "Transaction performed successfully."
+                if(addToAzure){
+                    system.addEventAzure(data, eventType);
+                    system.eventID++;
+                }
+                else{
+                    system.eventID++;
+                }
+            }
+            else{
+                result = "Transaction was not performed."
             }
         }
         if(eventType=="removeTicketSale"){
             var removed = system.ticketSellerRemoveTickets(data.salesPerson, Number(data.tickets), data.movie);
             if(removed){
-                system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
-                addEventAzure(data, eventType);
+                result = "Transaction performed successfully."
+                if(addToAzure){
+                    system.addEventAzure(data, eventType);
+                    system.eventID++;
+                }
+                else{
+                    system.eventID++;
+                }
+            }
+            else{
+                result = "Transaction was not performed."
             }
         }
-        system.printSystem();
+        return result;
+    }
+
+    addEventAzure(data, eventType){
+        var entGen = azure.TableUtilities.entityGenerator;
+        var event = {
+            PartitionKey: entGen.String('theatreEvents'),
+            RowKey: entGen.String(String(system.eventID)),
+            data: JSON.stringify(data),
+            eventType: eventType
+        };
+        tableSvc.insertEntity('events',event, function (error, result, response) {
+            if(!error){
+                //console.log(response);
+            }
+          });
     }
 
     processEventsFromAzure(){
-         
-        // this.events.forEach(function(event){
-        //     addEvent(event.eventType, eventType.data);
-        // });
-        // printSystem();
+        var query = new azure.TableQuery()
+        .where('PartitionKey eq?','theatreEvents');
+        tableSvc.queryEntities('events',query, null, function(error, result, response) {
+            if(!error) {
+                result.entries.forEach(function(element){
+                    system.addEventSystem(element.eventType._, JSON.parse(element.data._), false);
+                });
+            }
+        });
     }
 }
 
@@ -140,28 +186,14 @@ var app = express();
 
 var path = __dirname + '/views/';
 
+//Creation of table service.
+
 var tableSvc = azure.createTableService(AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY);
 tableSvc.createTableIfNotExists('events', function(error, result, response){
     if(!error){
         //console.log(response);
     }
   });
-
-function addEventAzure(data, eventType){
-    var entGen = azure.TableUtilities.entityGenerator;
-    console.log(entGen.String("bob12"));
-    var event = {
-        PartitionKey: entGen.String('theatreEvents'),
-        RowKey: entGen.String(String(system.eventID++)),
-        data: JSON.stringify(data),
-        eventType: eventType
-    };
-    tableSvc.insertEntity('events',event, function (error, result, response) {
-        if(!error){
-            //console.log(response);
-        }
-      });
-}
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -177,6 +209,7 @@ var system = new System();
 
     router.get('/refreshSystemMemory', function(req,res){
         system.processEventsFromAzure();
+        res.json({message:"System now up-to-date with server."});
     });
 
     router.get('/wipeSystemMemory', function(req,res){
@@ -208,13 +241,15 @@ var system = new System();
         // Adding Event To System.
         var data = {movie:req.body.movie, salesPerson:req.body.salesPerson, tickets:req.body.tickets}; 
         var eventType = req.body.transType;
+        var message = "";
         if(eventType=="buy"){
-            system.addEvent("addTicketSale",data);
+            message = system.addEventSystem("addTicketSale",data, true);
         }
         else{
-            system.addEvent("removeTicketSale",data);
+            message = system.addEventSystem("removeTicketSale",data, true);
         }
-        res.redirect('/');
+        res.status(200);
+        res.json({message:message});
     });
 
     // This route handles POST requests sent to the server containing the addition of events.
@@ -223,7 +258,7 @@ var system = new System();
         req.sanitizeBody('ticketSeller').escape();
         var newTicketSeller = req.body.ticketSeller;
         //Adding Seller to System.
-        system.addEvent("addSalesPerson", newTicketSeller); 
+        system.addEventSystem("addSalesPerson", newTicketSeller, true); 
         //Return request of all ticketSellers to populate view.
         res.status(200);
         res.json({message:"Sales Person Added Successfully.", allSellers:JSON.stringify(system.allSellers())});
@@ -234,7 +269,7 @@ var system = new System();
         req.sanitizeBody('movieShowing').escape();
         var newMovie = req.body.movieShowing;
         //Adding Movie to System.
-        system.addEvent("addMovieTheatre", newMovie);
+        system.addEventSystem("addMovieTheatre", newMovie, true);
         //Return request of all movieTheatres to populate view.
         res.status(200);
         res.json({message:"Movie Theatre Added Successfully.", allTheatres:JSON.stringify(system.allTheatreShowings())});
