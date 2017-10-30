@@ -17,10 +17,12 @@
   },
   "homepage": "https://github.com/shiv1994/cloudTechnologiesA2#readme",
   "dependencies": {
+    "azure": "^2.2.1-preview",
     "body-parser": "^1.18.2",
     "cors": "^2.8.4",
     "express": "^4.16.2",
     "express-validator": "^4.2.1",
-    "nodemon": "^1.12.1"
+    "nodemon": "^1.12.1",
+    "storage": "^0.2.0"
   }
 }

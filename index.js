@@ -77,12 +77,14 @@ class System{
     }
 
     addEvent(eventType, data){
-        
+
         //Add event to update real time view of system as well as event store once successful.
         if(eventType=="addSalesPerson"){
             system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
             system.sellerNames.push(data);
             system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+            addEventAzure(data, eventType);
+
         }
         if(eventType=="addMovieTheatre"){
             system.theatreShowing.push({movieName:data, numTicks:Number("0")});
@@ -114,6 +116,10 @@ class System{
 
 // Creation of Global Variables.
 
+var AZURE_STORAGE_ACCOUNT = "comp69052017a215";
+
+var AZURE_STORAGE_ACCESS_KEY = "vbqqOZAqYl4pHlUjg7QNaZ0NK6bvuoipxTfsXPaFVRKnhHZPXHj+mejFUCXW5V2rIGorIZlkWsb8cltJn2S5+Q==";
+
 var cors = require('cors')
 
 var express = require('express')
@@ -122,13 +128,35 @@ var bodyParser = require('body-parser')
 
 var expressValidator = require('express-validator');
 
+var azure = require('azure-storage');
+
 var router = express.Router();
 
 var app = express();
 
 var path = __dirname + '/views/';
 
-// Adding features to the main application vatiable.
+var tableSvc = azure.createTableService(AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY);
+tableSvc.createTableIfNotExists('events', function(error, result, response){
+    if(!error){
+        console.log(response);
+    }
+  });
+
+function addEventAzure(data, eventType){
+    var entGen = azure.TableUtilities.entityGenerator;
+    var event = {
+        PartitionKey: entGen.String('theatreEvents'),
+        RowKey: entGen.String('1-10'),
+        data: JSON.stringify(data),
+        eventType: eventType
+    };
+    tableSvc.insertEntity('events',event, function (error, result, response) {
+        if(!error){
+            console.log(response);
+        }
+      });
+}
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
