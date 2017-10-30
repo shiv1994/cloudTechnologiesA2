@@ -41,7 +41,7 @@
             </div>
 
              <div class="col-sm-6 card">
-                <div class="card-body" style="height:120px;width:550px;overflow:auto;">
+                <div class="card-body" style="height:300px;width:550px;overflow:auto;">
                         <p id="systemReport"></p>
                 </div>
             </div>
@@ -189,11 +189,11 @@
     <script> 
         $(document).ready(function(){
 
-            systemStatus();
-
             function writeServerStatus(theatres, sellers){
                 var sellerHTML = "";
                 var moviesHTML = "";
+                $('#theatresShowing').empty();
+                $('#ticketSellers').empty();
                 var text = "Theatres<br>";
                 theatres.forEach(function(element) {
                     text += element.movieName + " " + element.numTicks +'<br>';
@@ -210,14 +210,18 @@
                 $('#systemReport').html(text);
             }
 
-            function systemStatus(){
-                $.get(
-                    "http://127.0.0.1:8000/systemStatus",
-                    function(result){
-                        writeServerStatus(result.theatreShowings, result.sellers);
-                    },
-                    'json'
-                );
+            if (!!window.EventSource) {
+                var source = new EventSource('http://127.0.0.1:8000/systemStatus');
+                source.addEventListener('message', function(event) {
+                    var data = JSON.parse(event.data);
+                    var sellers = data.sellers;
+                    var theatres = data.theatres;
+                    writeServerStatus(theatres, sellers);
+                }, false);
+
+                source.addEventListener('open', function(e) {
+                    console.log("Connection To Server Opened!");
+                }, false);
             }
 
             $('#btnResetServerData').click(function(){
@@ -231,7 +235,6 @@
                 $.get("http://127.0.0.1:8000/refreshSystemMemory",
                 function(result){
                     $('#serverStatusResponse').text(result.message);
-                    writeServerStatus(result.theatreShowings, result.sellers);
                 },'json');
             });
 
@@ -241,6 +244,7 @@
                     {ticketSeller:$("#ticketSeller").val()}, 
                     function(result){
                         $('#salesPersonResponse').text(result.message);
+                        $('#ticketSellers').empty();
                         var names = JSON.parse(result.allSellers);
                         var sellers = '';
                         for (var i=0;i<names.length;i++){
@@ -258,6 +262,7 @@
                     { movieShowing:$("#movieShowing").val() }, 
                     function(result){
                         $('#movieTheatreResponse').text(result.message);
+                        $('#theatresShowing').empty();
                         var names = JSON.parse(result.allTheatres);
                         var theatres = '';
                         for (var i=0;i<names.length;i++){
