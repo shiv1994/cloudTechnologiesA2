@@ -27,13 +27,18 @@
 
         <div class="row">
 
-             <div class="col-sm-3">
+             <div class="col-sm-2">
                     <button id="btnResetServerData" type="button" class="btn btn-danger">Clear Server Memory</button>
              </div>
 
-             <div class="col-sm-3">
+             <div class="col-sm-2">
                     <button id="btnReloadServerData" type="button" class="btn btn-success">Reload Server Data</button>
              </div>
+
+             <div class="col-sm-2">
+                <p>Server Status: </p> 
+                <p id="serverStatusResponse"></p>
+            </div>
 
              <div class="col-sm-6 card">
                 <div class="card-body" style="height:120px;width:550px;overflow:auto;">
@@ -192,16 +197,21 @@
                     function(result){
                         var theatres = (result.theatreShowings);
                         var sellers = (result.sellers);
+                        var sellerHTML = "";
+                        var moviesHTML = "";
                         var text = "Theatres<br>";
                         theatres.forEach(function(element) {
                             text += element.movieName + " " + element.numTicks +'<br>';
+                            moviesHTML += '<option value="'+ element.movieName + '">' + element.movieName + '</option>';
                         });
+                        $('#theatresShowing').append(moviesHTML);
                         text += "--------------------------";
                         text += "<br>Sellers<br>"
                         sellers.forEach(function(element) {
                             text += element.sellerName + " " + element.numTicks +'<br>';
+                            sellerHTML +=  '<option value="'+ element.sellerName + '">' + element.sellerName + '</option>';
                         });
-                        console.log(text);
+                        $('#ticketSellers').append(sellerHTML);
                         $('#systemReport').html(text);
                     },
                     'json'
@@ -209,7 +219,10 @@
             }
 
             $('#btnResetServerData').click(function(){
-                console.log('Reset Called!');
+                $.get("http://127.0.0.1:8000/wipeSystemMemory",
+                function(result){
+                    $('#serverStatusResponse').text(result.message);
+                },'json');
             });
 
             $('#btnReloadServerData').click(function(){

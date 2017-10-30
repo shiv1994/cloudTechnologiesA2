@@ -82,35 +82,39 @@ class System{
         if(eventType=="addSalesPerson"){
             system.ticketSeller.push({sellerName:data, numTicks:Number("0")});
             system.sellerNames.push(data);
-            system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+            system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
             addEventAzure(data, eventType);
 
         }
         if(eventType=="addMovieTheatre"){
             system.theatreShowing.push({movieName:data, numTicks:Number("0")});
             system.movieNames.push(data);
-            system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+            system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
+            addEventAzure(data, eventType);
         }
         if(eventType=="addTicketSale"){
             var added = system.ticketSellerAddTickets(data.salesPerson, Number(data.tickets), data.movie);
             if(added){
                 system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+                addEventAzure(data, eventType);
             }
         }
         if(eventType=="removeTicketSale"){
             var removed = system.ticketSellerRemoveTickets(data.salesPerson, Number(data.tickets), data.movie);
             if(removed){
-                system.events.push({id:system.eventID++, timestamp:Date.now(), data:data, eventType:eventType});
+                system.events.push({id:system.eventID, timestamp:Date.now(), data:data, eventType:eventType});
+                addEventAzure(data, eventType);
             }
         }
         system.printSystem();
     }
 
-    processEvents(){
-        this.events.forEach(function(event){
-            addEvent(event.eventType, eventType.data);
-        });
-        printSystem();
+    processEventsFromAzure(){
+         
+        // this.events.forEach(function(event){
+        //     addEvent(event.eventType, eventType.data);
+        // });
+        // printSystem();
     }
 }
 
@@ -139,21 +143,22 @@ var path = __dirname + '/views/';
 var tableSvc = azure.createTableService(AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY);
 tableSvc.createTableIfNotExists('events', function(error, result, response){
     if(!error){
-        console.log(response);
+        //console.log(response);
     }
   });
 
 function addEventAzure(data, eventType){
     var entGen = azure.TableUtilities.entityGenerator;
+    console.log(entGen.String("bob12"));
     var event = {
         PartitionKey: entGen.String('theatreEvents'),
-        RowKey: entGen.String('1-10'),
+        RowKey: entGen.String(String(system.eventID++)),
         data: JSON.stringify(data),
         eventType: eventType
     };
     tableSvc.insertEntity('events',event, function (error, result, response) {
         if(!error){
-            console.log(response);
+            //console.log(response);
         }
       });
 }
@@ -171,11 +176,12 @@ var system = new System();
     // Routing functionality of application.
 
     router.get('/refreshSystemMemory', function(req,res){
-        system.processEvents();
+        system.processEventsFromAzure();
     });
 
     router.get('/wipeSystemMemory', function(req,res){
         system.clearArrays();
+        res.json({message:"System arrays are reset."});
     });
 
     router.get('/systemStatus', function(req,res){
