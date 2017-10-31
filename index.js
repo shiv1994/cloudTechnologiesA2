@@ -142,7 +142,7 @@ class System{
         var entGen = azure.TableUtilities.entityGenerator;
         var event = {
             PartitionKey: entGen.String('theatreEvents2'),
-            RowKey: entGen.String(String(system.eventID)),
+            RowKey: entGen.String(String(Date.now())),
             data: JSON.stringify(data),
             eventType: eventType
         };
@@ -153,56 +153,43 @@ class System{
           });
     }
 
-    processEventsFromAzure(fun){
+
+    async processEventsFromAzure(){
+
         var query = new azure.TableQuery().where('PartitionKey eq?','theatreEvents2');
 
-        return tableSvc.queryEntities('events',query, null, function(error, result, response) {
-            if(!error) {
-                result.entries.forEach(function(element){
-                    system.addEventSystemAzure(element.eventType._, JSON.parse(element.data._), false);
-                });
-                var res2 = fun();
-                console.log("res2", res2);
-                return res2;
-            }
-        });
-   
-    }
-
-    processEventsFromAzureNoCallback(){
-        var query = new azure.TableQuery()
-        .where('PartitionKey eq?','theatreEvents2');
-        tableSvc.queryEntities('events',query, null, function(error, result, response) {
-            if(!error) {
-                result.entries.forEach(function(element){
-                    system.addEventSystemAzure(element.eventType._, JSON.parse(element.data._), false);
-                });
-                //Update Materalized View
-                updateClients();
-            }
+        var res = await new Promise((res, rej)=>{
+            tableSvc.queryEntities('events',query, null, function(error, result, response) {
+                if(!error) {
+                    //Playback Events
+                    result.entries.forEach(function(event){
+                        system.addEventSystemAzure(event.eventType._, JSON.parse(event.data._), false);
+                        console.log(event);
+                    });
+                    res(true);
+                }
+            });
         });
     }
 
-    verifyAndUpdateEventStore(eventType, data, addToAzure){
+    async verifyAndUpdateEventStore(eventType, data, addToAzure){
         //Clear server's data.
         system.clearArrays();
         //Rebuilding Event Store From Azure.
-        var res = system.processEventsFromAzure(
-            ()=>{
-                var successful = false;
-                //Add event to system's current view.
-                if(system.addEventSystemAzure(eventType, data, true)==true){
-                    successful = true;
-                    //Clear server's data again.
-                    system.clearArrays();
-                    //Rebuilding Event Store From Azure.
-                    system.processEventsFromAzureNoCallback();
-                }
-                return successful;
-            }
-        );
-        console.log("res", res);
-        return res;
+        await system.processEventsFromAzure();
+        //Process new event 
+        var successful = false;
+        //Add event to system's current view.
+        if(system.addEventSystemAzure(eventType, data, true)==true){
+            successful = true;
+            //Clear server's data again.
+            system.clearArrays();
+            //Rebuilding Event Store From Azure.
+            await system.processEventsFromAzure();
+            //Update Materalized View
+            setTimeout(updateClients, 1500);
+        }
+        return successful;
     }
 
 }
@@ -261,6 +248,7 @@ class System{
     
         res.sseSend = function(data) {
             res.write("data: " + JSON.stringify(data) + "\n\n");
+            // console.log(data);
         }
     
         next();
@@ -271,6 +259,7 @@ app.use(sse);
 let updateClients = () => {
     var data = {sellers: system.getSellersData(), theatres:system.getTheatreData()};
     connections.forEach(conn=> conn.sseSend(data));
+    console.log(data);
 }
 
 var system = new System();
@@ -278,8 +267,8 @@ var system = new System();
 
 // Routing functionality of application.
     router.get('/refreshSystemMemory', function(req,res){
-        system.processEventsFromAzureNoCallback();
-        //setTimeout(updateClients, 2000);
+        system.processEventsFromAzure();
+        setTimeout(updateClients, 2000);
         res.json({message:"System now up-to-date with server."});
     });
 
@@ -290,10 +279,7 @@ var system = new System();
     });
         
     router.get('/systemStatus', function(req,res){
-        // var theatreData = system.getTheatreData();
-        var sellerData = system.getSellersData();
         res.sseSetup();
-        res.sseSend(sellerData);
         connections.push(res);
     });
 
@@ -303,7 +289,7 @@ var system = new System();
     });
 
     // This route handles POST requests sent to the server containing the addition of events.
-    router.post('/recordTransaction', function (req, res){
+    router.post('/recordTransaction',async function (req, res){
         // Ensuring input exists.
         req.checkBody('movie', 'Invalid name').notEmpty().isAlpha();
         req.checkBody('tickets', 'Invalid name').notEmpty().isAlpha();
@@ -319,15 +305,13 @@ var system = new System();
         var eventType = req.body.transType;
         var messageResponse = "Ticket Transaction Completed Successfully";
         if(eventType=="buy"){
-            if(system.verifyAndUpdateEventStore("addTicketSale", data, true)==false){
+            if(await system.verifyAndUpdateEventStore("addTicketSale", data, true)==false){
                 messageResponse = "Ticket Transaction Not Completed Successfully";
             }
         }
         else{
-            var rsult = system.verifyAndUpdateEventStore("removeTicketSale", data, true);
-            console.log("FUCK ->"+rsult);
-            if(rsult==false){
-                console.log("FUCKKK");
+            var result = await system.verifyAndUpdateEventStore("removeTicketSale", data, true);
+            if(result==false){
                 messageResponse = "Ticket Transaction Not Completed Successfully";
             }
         }
@@ -336,26 +320,26 @@ var system = new System();
     });
 
     // This route handles POST requests sent to the server containing the addition of events.
-    router.post('/addTicketSeller', function (req, res){
+    router.post('/addTicketSeller', async function (req, res){
         req.checkBody('ticketSeller', 'Invalid name').notEmpty().isAlpha();
         req.sanitizeBody('ticketSeller').escape();
         var newTicketSeller = req.body.ticketSeller;
         var messageResponse = "Seller Added Successfully";
         //Adding Seller to System.
-        if(system.verifyAndUpdateEventStore("addSalesPerson", newTicketSeller, true)==false){
+        if(await system.verifyAndUpdateEventStore("addSalesPerson", newTicketSeller, true)==false){
             messageResponse = "Seller Not Added Successfully.";
         }
         res.status(200);
-        res.json({message: messageResponse, allSellers:JSON.stringify(system.allSellers())});
+        res.json({message: messageResponse});
     });
 
-    router.post('/addMovieShowing', function (req, res){
+    router.post('/addMovieShowing', async function (req, res){
         req.checkBody('movieShowing', 'Invalid name').notEmpty().isAlpha();
         req.sanitizeBody('movieShowing').escape();
         var newMovie = req.body.movieShowing;
         var messageResponse = "Movie Added Successfully";
         //Adding Movie to System.
-        if(system.verifyAndUpdateEventStore("addMovieTheatre", newMovie, true)==false){
+        if(await system.verifyAndUpdateEventStore("addMovieTheatre", newMovie, true)==false){
             messageResponse = "Movie Not Added Successfully.";
         }
         res.status(200);

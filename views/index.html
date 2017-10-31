@@ -244,13 +244,13 @@
                     {ticketSeller:$("#ticketSeller").val()}, 
                     function(result){
                         $('#salesPersonResponse').text(result.message);
-                        $('#ticketSellers').empty();
-                        var names = JSON.parse(result.allSellers);
-                        var sellers = '';
-                        for (var i=0;i<names.length;i++){
-                            sellers += '<option value="'+ names[i] + '">' + names[i] + '</option>';
-                        }
-                        $('#ticketSellers').append(sellers);
+                        // $('#ticketSellers').empty();
+                        // var names = JSON.parse(result.allSellers);
+                        // var sellers = '';
+                        // for (var i=0;i<names.length;i++){
+                        //     sellers += '<option value="'+ names[i] + '">' + names[i] + '</option>';
+                        // }
+                        // $('#ticketSellers').append(sellers);
                     },
                     'json'
                 );
@@ -262,13 +262,13 @@
                     { movieShowing:$("#movieShowing").val() }, 
                     function(result){
                         $('#movieTheatreResponse').text(result.message);
-                        $('#theatresShowing').empty();
-                        var names = JSON.parse(result.allTheatres);
-                        var theatres = '';
-                        for (var i=0;i<names.length;i++){
-                            theatres += '<option value="'+ names[i] + '">' + names[i] + '</option>';
-                        }
-                        $('#theatresShowing').append(theatres);
+                        // $('#theatresShowing').empty();
+                        // var names = JSON.parse(result.allTheatres);
+                        // var theatres = '';
+                        // for (var i=0;i<names.length;i++){
+                        //     theatres += '<option value="'+ names[i] + '">' + names[i] + '</option>';
+                        // }
+                        // $('#theatresShowing').append(theatres);
                     },
                     'json'
                 );
