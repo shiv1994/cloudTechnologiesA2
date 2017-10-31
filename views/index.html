@@ -189,6 +189,16 @@
     <script> 
         $(document).ready(function(){
 
+            getInitialState();
+
+
+            function getInitialState(){
+                $.get("http://127.0.0.1:8000/initialData",
+                function(result){
+                    writeServerStatus(result.theatres, result.sellers);
+                },'json');
+            }
+
             function writeServerStatus(theatres, sellers){
                 var sellerHTML = "";
                 var moviesHTML = "";

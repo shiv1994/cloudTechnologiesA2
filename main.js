@@ -283,6 +283,10 @@ var system = new System();
         connections.push(res);
     });
 
+    router.get('/initialData', function(req, res){
+        res.json({sellers: system.getSellersData(), theatres: system.getTheatreData()});
+    });
+
     // This route is used to display the homepage where all functionality can be carried out.
     router.get('/',function(req, res){
         res.sendFile(path + 'index.html');
